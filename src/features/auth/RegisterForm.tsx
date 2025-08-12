@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, TextField, Typography, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton, Chip, FormHelperText } from '@mui/material';
+import { Box, Button, TextField, Typography, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton, Chip, FormHelperText, FormGroup, FormControlLabel, Checkbox, RadioGroup, Radio } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,6 +19,11 @@ const RegisterForm = () => {
   const [schools, setSchools] = useState<School[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Nuevos estados para los checkboxes
+  const [meDefino, setMeDefino] = useState<('masculino' | 'femenino' | 'otros') | ''>('');
+  const [queBusco, setQueBusco] = useState<('masculino' | 'femenino' | 'otros')[]>([]);
+  
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -40,9 +45,16 @@ const RegisterForm = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tipo de archivo
-    if (!file.type.startsWith('image/')) {
-      setError('Por favor selecciona una imagen válida');
+    // Validar tipo de archivo específico
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Solo se permiten archivos JPG, PNG o WEBP');
+      return;
+    }
+
+    // Validar que el archivo no esté vacío
+    if (file.size === 0) {
+      setError('El archivo está vacío');
       return;
     }
 
@@ -57,6 +69,9 @@ const RegisterForm = () => {
       setError('Ya tienes el máximo de fotos permitidas');
       return;
     }
+
+    // Limpiar error si todo está bien
+    setError(null);
 
     // Agregar archivo a la lista
     setPhotos([...photos, file]);
@@ -83,6 +98,18 @@ const RegisterForm = () => {
     }
   };
 
+  const handleMeDefinoChange = (value: 'masculino' | 'femenino' | 'otros') => {
+    setMeDefino(value);
+  };
+
+  const handleQueBuscoChange = (value: 'masculino' | 'femenino' | 'otros') => {
+    if (queBusco.includes(value)) {
+      setQueBusco(queBusco.filter(item => item !== value));
+    } else {
+      setQueBusco([...queBusco, value]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -97,6 +124,18 @@ const RegisterForm = () => {
     // Validaciones
     if (!nombreCompleto.trim()) {
       setError('El nombre completo es obligatorio');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!meDefino) {
+      setError('Debes seleccionar cómo te defines');
+      setIsLoading(false);
+      return;
+    }
+
+    if (queBusco.length === 0) {
+      setError('Debes seleccionar qué buscas');
       setIsLoading(false);
       return;
     }
@@ -116,6 +155,8 @@ const RegisterForm = () => {
     try {
       await dispatch(completeProfile({ 
         nombre_completo: nombreCompleto.trim(),
+        me_defino: meDefino ? [meDefino] : [],
+        que_busco: queBusco,
         busca,
         descripcion: descripcion.trim() || undefined,
         escuela_id: escuelaId || undefined,
@@ -132,9 +173,9 @@ const RegisterForm = () => {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 500, mx: 'auto', mt: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom align="center">
-        Registro
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600, mx: 'auto', mt: 4, p: 3 }}>
+      <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ mb: 4, fontWeight: 'bold', color: 'primary.main' }}>
+        Completa tu Perfil
       </Typography>
       
       {error && <ErrorMessage message={error} />}
@@ -147,33 +188,33 @@ const RegisterForm = () => {
         onChange={e => setNombreCompleto(e.target.value)} 
         required
         disabled={isLoading}
+        sx={{ mb: 3 }}
       />
 
-      
       {/* Fotos */}
-      <Box sx={{ mt: 3, mb: 2 }}>
-        <Typography variant="h6" gutterBottom>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
           Fotos *
         </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Puedes agregar entre 1 y 5 fotos
+        <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+          Puedes agregar entre 1 y 5 fotos (JPG, PNG, WEBP - máximo 5MB cada una)
         </Typography>
         
-                 <input
-           accept="image/*"
-           style={{ display: 'none' }}
-           id="photos-input"
-           type="file"
-           onChange={(e) => handleFileChange(e)}
-           disabled={isLoading || (photos.length >= 5)}
-         />
+        <input
+          accept="image/jpeg,image/png,image/webp"
+          style={{ display: 'none' }}
+          id="photos-input"
+          type="file"
+          onChange={(e) => handleFileChange(e)}
+          disabled={isLoading || (photos.length >= 5)}
+        />
         <label htmlFor="photos-input">
           <Button 
             variant="outlined" 
             component="span" 
             fullWidth 
             disabled={isLoading || (photos.length >= 5)}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, py: 1.5 }}
           >
             {photos.length >= 5 ? 'Máximo de fotos alcanzado' : 'Agregar foto'}
           </Button>
@@ -187,7 +228,7 @@ const RegisterForm = () => {
                 <Avatar
                   src={photo}
                   alt={`Foto ${index + 1}`}
-                  sx={{ width: 60, height: 60 }}
+                  sx={{ width: 80, height: 80, border: '2px solid #e0e0e0' }}
                 />
                 <IconButton
                   size="small"
@@ -210,12 +251,12 @@ const RegisterForm = () => {
         )}
       </Box>
       
-      {/* ¿Qué buscas? */}
-      <Box sx={{ mt: 3, mb: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          ¿Qué buscas? *
+      {/* Tipo de relación */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+          Tipo de relación *
         </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
+        <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
           Selecciona entre 1 y 3 opciones
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -227,15 +268,10 @@ const RegisterForm = () => {
               color={busca.includes(option) ? 'primary' : 'default'}
               variant={busca.includes(option) ? 'filled' : 'outlined'}
               disabled={isLoading}
-              sx={{ cursor: 'pointer' }}
+              sx={{ cursor: 'pointer', fontSize: '1rem', py: 1 }}
             />
           ))}
         </Box>
-        {busca.length > 0 && (
-          <FormHelperText>
-            Seleccionado: {busca.join(', ')}
-          </FormHelperText>
-        )}
       </Box>
 
       <TextField 
@@ -243,15 +279,97 @@ const RegisterForm = () => {
         margin="normal" 
         label="Descripción personal" 
         multiline
-        rows={3}
+        rows={4}
         value={descripcion} 
         onChange={e => setDescripcion(e.target.value)} 
         placeholder="Cuéntanos sobre ti..."
         disabled={isLoading}
         helperText="Opcional"
+        sx={{ mb: 3 }}
       />
 
-      <FormControl fullWidth margin="normal" disabled={isLoading}>
+      {/* Checkboxes distribuidos verticalmente */}
+      <Box sx={{ mb: 4 }}>
+        {/* Cómo me defino */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+            ¿Cómo te defines? *
+          </Typography>
+          <FormGroup sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={meDefino === 'masculino'}
+                  onChange={() => handleMeDefinoChange('masculino')}
+                  disabled={isLoading}
+                />
+              }
+              label="Masculino"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={meDefino === 'femenino'}
+                  onChange={() => handleMeDefinoChange('femenino')}
+                  disabled={isLoading}
+                />
+              }
+              label="Femenino"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={meDefino === 'otros'}
+                  onChange={() => handleMeDefinoChange('otros')}
+                  disabled={isLoading}
+                />
+              }
+              label=""
+            />
+          </FormGroup>
+        </Box>
+
+        {/* Qué busco */}
+        <Box>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+            ¿Qué buscas? *
+          </Typography>
+          <FormGroup sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={queBusco.includes('masculino')}
+                  onChange={() => handleQueBuscoChange('masculino')}
+                  disabled={isLoading}
+                />
+              }
+              label="Masculino"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={queBusco.includes('femenino')}
+                  onChange={() => handleQueBuscoChange('femenino')}
+                  disabled={isLoading}
+                />
+              }
+              label="Femenino"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={queBusco.includes('otros')}
+                  onChange={() => handleQueBuscoChange('otros')}
+                  disabled={isLoading}
+                />
+              }
+              label=""
+            />
+          </FormGroup>
+        </Box>
+      </Box>
+
+      <FormControl fullWidth margin="normal" disabled={isLoading} sx={{ mb: 4 }}>
         <InputLabel>Escuela de certificación</InputLabel>
         <Select
           value={escuelaId}
@@ -269,11 +387,21 @@ const RegisterForm = () => {
         </Select>
       </FormControl>
       
-      <Button type="submit" variant="contained" fullWidth disabled={isLoading} sx={{ mt: 3 }}>
-        {isLoading ? 'Registrando...' : 'Registrarse'}
+      <Button 
+        type="submit" 
+        variant="contained" 
+        fullWidth 
+        disabled={isLoading} 
+        sx={{ 
+          mt: 3, 
+          py: 1.5, 
+          fontSize: '1.1rem',
+          fontWeight: 'bold',
+          borderRadius: 2
+        }}
+      >
+        {isLoading ? 'Registrando...' : 'Completar Perfil'}
       </Button>
-
-      
     </Box>
   );
 };

@@ -8,6 +8,13 @@ import { RootState } from './store';
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, hasProfile } = useSelector((state: RootState) => state.auth);
+  
+  console.log('=== PRIVATE ROUTE ===');
+  console.log('isAuthenticated:', isAuthenticated);
+  console.log('hasProfile:', hasProfile);
+  console.log('Should render children:', isAuthenticated && hasProfile);
+  console.log('=== FIN PRIVATE ROUTE ===');
+  
   return isAuthenticated && hasProfile ? children : <Navigate to="/auth" />;
 };
 

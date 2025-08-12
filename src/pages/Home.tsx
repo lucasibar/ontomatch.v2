@@ -1,12 +1,40 @@
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { logout } from '../features/auth/authSlice';
 import { logoutUser } from '../features/auth/authApi';
+import { ensureProfileInitialized } from '../features/onboarding/useOnboarding';
 import { RootState } from '../app/store';
 
 const HomePage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileStatus, setProfileStatus] = useState<any>(null);
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      try {
+        const status = await ensureProfileInitialized();
+        setProfileStatus(status);
+        
+        if (status.needsAuth) {
+          navigate('/auth');
+        } else if (status.needsOnboarding) {
+          // Por ahora solo mostrar mensaje, después implementaremos la página de onboarding
+          console.log('Usuario necesita completar perfil');
+        }
+      } catch (error) {
+        console.error('Error al verificar perfil:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkProfile();
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
@@ -16,6 +44,19 @@ const HomePage = () => {
       console.error('Error al cerrar sesión:', error);
     }
   };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '60vh' 
+      }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ 
@@ -37,7 +78,13 @@ const HomePage = () => {
 
       {user && (
         <Typography variant="h6" color="primary" sx={{ mb: 4 }}>
-          Hola, {user.nombre_completo}
+          Hola, {user.nombre_completo || user.email}
+        </Typography>
+      )}
+
+      {profileStatus?.needsOnboarding && (
+        <Typography variant="body1" color="warning.main" sx={{ mb: 4 }}>
+          Necesitas completar tu perfil para continuar
         </Typography>
       )}
       

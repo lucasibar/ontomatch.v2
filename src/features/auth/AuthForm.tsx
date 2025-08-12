@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Button, TextField, Typography, Alert, CircularProgress } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
-import { authenticateUser } from './authApi';
+import { useNavigate } from 'react-router-dom';
+import { authenticateUser, clearUserProfile } from './authApi';
 import { RootState } from '../../app/store';
 import RegisterForm from './RegisterForm';
 
@@ -9,9 +10,27 @@ const AuthForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const dispatch = useDispatch();
-  const { isLoading, message, needsEmailConfirmation, isAuthenticated, hasProfile } = useSelector(
+  const navigate = useNavigate();
+  const { isLoading, message, needsEmailConfirmation, isAuthenticated, hasProfile, user } = useSelector(
     (state: RootState) => state.auth
   );
+
+  // Debug logs
+  console.log('=== AUTHFORM STATE ===');
+  console.log('isAuthenticated:', isAuthenticated);
+  console.log('hasProfile:', hasProfile);
+  console.log('needsEmailConfirmation:', needsEmailConfirmation);
+  console.log('message:', message);
+  console.log('isLoading:', isLoading);
+  console.log('=== FIN AUTHFORM STATE ===');
+
+  // Redirigir automáticamente si está autenticado y tiene perfil completo
+  useEffect(() => {
+    if (isAuthenticated && hasProfile) {
+      console.log('Redirigiendo al home...');
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, hasProfile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +40,18 @@ const AuthForm = () => {
       await dispatch(authenticateUser({ email, password })).unwrap();
     } catch (error) {
       // Error ya manejado por el slice
+    }
+  };
+
+  const handleClearProfile = async () => {
+    if (!user?.id) return;
+    
+    try {
+      await clearUserProfile(user.id);
+      // Recargar la página para resetear el estado
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al limpiar perfil:', error);
     }
   };
 
@@ -98,6 +129,19 @@ const AuthForm = () => {
           'Continuar'
         )}
       </Button>
+
+      {/* Botón temporal para limpiar perfil (solo para testing) */}
+      {isAuthenticated && hasProfile && user && (
+        <Button 
+          variant="outlined" 
+          color="warning" 
+          fullWidth 
+          onClick={handleClearProfile}
+          sx={{ mt: 2 }}
+        >
+          Limpiar Perfil (Testing)
+        </Button>
+      )}
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
         Si no tienes cuenta, se creará automáticamente

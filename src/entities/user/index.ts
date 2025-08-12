@@ -2,7 +2,9 @@ export interface User {
   id: string;
   nombre_completo: string;
   email?: string;
-  busca: ('pareja' | 'amistad' | 'negocios')[];
+  me_defino: 'masculino' | 'femenino' | 'otros'; // string en DB
+  que_busco: ('masculino' | 'femenino' | 'otros')[]; // array en DB
+  busca: ('pareja' | 'amistad' | 'negocios')[]; // array en DB
   descripcion?: string;
   escuela_id?: string;
   created_at: string;
@@ -30,11 +32,14 @@ export interface AuthUser {
   token: string;
 }
 
+// Interface para el frontend (mantiene array para compatibilidad)
 export interface RegisterData {
   email: string;
   password: string;
   nombre_completo: string;
-  busca: ('pareja' | 'amistad' | 'negocios')[];
+  me_defino: ('masculino' | 'femenino' | 'otros')[]; // array en frontend
+  que_busco: ('masculino' | 'femenino' | 'otros')[]; // array en frontend
+  busca: ('pareja' | 'amistad' | 'negocios')[]; // array en frontend
   descripcion?: string;
   escuela_id?: string;
   photos?: File[];
