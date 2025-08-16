@@ -93,9 +93,29 @@ const HomePage = () => {
         compartir experiencias y crear relaciones significativas.
       </Typography>
 
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center', mb: 4 }}>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => navigate('/swipe')}
+          sx={{ minWidth: 120 }}
+        >
+          Descubrir
+        </Button>
+        
+        <Button 
+          variant="outlined" 
+          color="primary" 
+          onClick={() => navigate('/matches')}
+          sx={{ minWidth: 120 }}
+        >
+          Mis Matches
+        </Button>
+      </Box>
+
       <Button 
         variant="outlined" 
-        color="primary" 
+        color="secondary" 
         onClick={handleLogout}
         sx={{ mt: 2 }}
       >

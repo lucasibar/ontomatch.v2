@@ -3,6 +3,9 @@ import { Box, ThemeProvider, CssBaseline } from '@mui/material';
 import { theme } from './theme';
 import HomePage from '../pages/Home';
 import AuthForm from '../features/auth/AuthForm';
+import Swipe from '../pages/Swipe';
+import Matches from '../pages/Matches';
+import Chat from '../pages/Chat';
 import { useSelector } from 'react-redux';
 import { RootState } from './store';
 
@@ -34,6 +37,9 @@ const App = () => {
           <Box component="main" sx={{ flexGrow: 1, py: 3 }}>
             <Routes>
               <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+              <Route path="/swipe" element={<PrivateRoute><Swipe /></PrivateRoute>} />
+              <Route path="/matches" element={<PrivateRoute><Matches /></PrivateRoute>} />
+              <Route path="/chat/:matchId" element={<PrivateRoute><Chat /></PrivateRoute>} />
               <Route path="/auth" element={<AuthForm />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

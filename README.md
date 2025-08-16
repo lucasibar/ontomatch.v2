@@ -1,224 +1,157 @@
-# OntoMatch v2
+# OntoMatch v2 - Plataforma de Conexión para Coaches Ontológicos
 
-Plataforma de conexión para coaches ontológicos construida con React, TypeScript, Redux Toolkit y Supabase.
+Una aplicación de matching moderna para conectar profesionales del coaching ontológico, construida con React, TypeScript, Supabase y Ably.
 
-## Características
+## 🚀 Características
 
-- **Autenticación completa** con Supabase
-- **Registro de usuarios** con validación de fotos
-- **Interfaz moderna** con Material-UI
-- **Arquitectura limpia** con Redux Toolkit
-- **Tipado completo** con TypeScript
+### ✅ Autenticación
+- Login/Registro unificado con email
+- Verificación de perfiles completos
+- Gestión de sesiones persistentes
 
-## Requisitos
+### ✅ Matching
+- Algoritmo de compatibilidad basado en preferencias
+- Sistema de likes y matches automáticos
+- Interfaz de swipe intuitiva
+- Lista de matches y likes recibidos
 
-- Node.js 16+ 
-- npm o yarn
-- Cuenta de Supabase
+### ✅ Chat en Tiempo Real
+- Mensajería instantánea con Ably
+- Persistencia de mensajes en Supabase
+- Indicadores de lectura y presencia
+- Interfaz de chat moderna
 
-## Instalación
+### ✅ Perfiles de Usuario
+- Gestión completa de perfiles
+- Subida de fotos múltiples
+- Preferencias de matching
+- Información de escuelas
 
-1. Clona el repositorio:
+## 🛠️ Tecnologías
+
+- **Frontend**: React 18, TypeScript, Redux Toolkit
+- **UI**: Material-UI + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **Tiempo Real**: Ably
+- **Build**: Vite
+
+## 📦 Instalación
+
+### 1. Clonar el repositorio
 ```bash
 git clone <repository-url>
 cd ontomatch.v2
 ```
 
-2. Instala las dependencias:
+### 2. Instalar dependencias
 ```bash
 npm install
 ```
 
-3. Configura las variables de entorno:
-```bash
-cp env.example .env.local
+### 3. Configurar variables de entorno
+Crear un archivo `.env` en la raíz del proyecto:
+
+```env
+# Supabase
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Ably
+VITE_ABLY_API_KEY=your-ably-api-key
 ```
 
-Edita el archivo `.env.local` y agrega tus credenciales de Supabase:
-```
-VITE_SUPABASE_URL=tu_url_de_supabase
-VITE_SUPABASE_ANON_KEY=tu_clave_anonima_de_supabase
-```
+### 4. Configurar Supabase
+Ejecutar los comandos SQL proporcionados en la documentación de la base de datos para crear todas las tablas, funciones y políticas necesarias.
 
-4. Ejecuta el proyecto en modo desarrollo:
+### 5. Ejecutar la aplicación
 ```bash
 npm run dev
 ```
 
-El proyecto estará disponible en `http://localhost:3000`
+## 🗄️ Base de Datos
 
-## Estructura del Proyecto
+### Tablas Principales
+- `profiles` - Perfiles de usuario
+- `fotos` - Fotos de usuario
+- `matches` - Matches entre usuarios
+- `likes` - Likes unidireccionales
+- `chats` - Chats para matches
+- `messages` - Mensajes de chat
+- `escuelas_habilitadas` - Escuelas disponibles
 
-```
-src/
-├── app/                 # Configuración de la aplicación
-│   ├── App.tsx         # Componente principal
-│   ├── store.ts        # Store de Redux
-│   └── theme.ts        # Tema de Material-UI
-├── entities/           # Tipos y entidades
-│   └── user/           # Tipos de usuario
-├── features/           # Funcionalidades
-│   └── auth/           # Autenticación
-├── pages/              # Páginas de la aplicación
-├── shared/             # Componentes y utilidades compartidas
-│   ├── config/         # Configuraciones
-│   └── ui/             # Componentes UI
-└── main.tsx           # Punto de entrada
-```
+### Funciones SQL
+- `get_compatible_users()` - Obtener usuarios compatibles
+- `create_mutual_match()` - Crear matches automáticos
+- `update_updated_at_column()` - Actualizar timestamps
 
-## Configuración de Supabase
+### Políticas RLS
+- Acceso controlado a todos los datos
+- Usuarios solo pueden ver/modificar sus propios datos
+- Chats solo accesibles para participantes
 
-### 1. Tablas Requeridas
+## 🎯 Funcionalidades Principales
 
-#### Tabla `profiles`
-```sql
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
-  nombre_completo TEXT NOT NULL,
-  email TEXT,
-  busca TEXT[] CHECK (array_length(busca, 1) >= 1 AND array_length(busca, 1) <= 3),
-  descripcion TEXT,
-  escuela_id UUID REFERENCES escuelas_habilitadas(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+### Sistema de Matching
+1. **Algoritmo de Compatibilidad**: Basado en género, preferencias y búsquedas
+2. **Likes Automáticos**: Creación automática de matches cuando hay like mutuo
+3. **Interfaz de Swipe**: Navegación intuitiva entre usuarios
+4. **Filtros Inteligentes**: Exclusión de usuarios ya vistos
 
--- Función para validar valores de busca
-CREATE OR REPLACE FUNCTION busca_valida(busca TEXT[])
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN (
-    SELECT COUNT(*) = array_length(busca, 1)
-    FROM unnest(busca) AS valor
-    WHERE valor IN ('pareja', 'amistad', 'negocios')
-  );
-END;
-$$ LANGUAGE plpgsql;
+### Chat en Tiempo Real
+1. **Mensajería Instantánea**: Conectividad en tiempo real con Ably
+2. **Persistencia**: Todos los mensajes se guardan en Supabase
+3. **Indicadores**: Estado de lectura y presencia online
+4. **Notificaciones**: Alertas de nuevos mensajes
 
--- Constraint para validar busca
-ALTER TABLE profiles ADD CONSTRAINT check_busca_valida 
-CHECK (busca_valida(busca));
-```
+### Gestión de Perfiles
+1. **Fotos Múltiples**: Hasta 6 fotos por usuario
+2. **Preferencias Detalladas**: Género, búsquedas, intereses
+3. **Información Académica**: Escuelas y especializaciones
+4. **Ubicación**: Coordenadas GPS para proximidad
 
-#### Tabla `fotos`
-```sql
-CREATE TABLE fotos (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  path TEXT NOT NULL,
-  position INTEGER CHECK (position >= 1 AND position <= 5),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, position)
-);
-```
+## 📱 Páginas Principales
 
-#### Tabla `escuelas_habilitadas`
-```sql
-CREATE TABLE escuelas_habilitadas (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  nombre TEXT NOT NULL,
-  activa BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+- **Home** (`/`) - Dashboard principal
+- **Swipe** (`/swipe`) - Descubrir usuarios
+- **Matches** (`/matches`) - Ver matches
+- **Chat** (`/chat/:matchId`) - Mensajería
+- **Auth** (`/auth`) - Login/Registro
 
--- Insertar escuela por defecto
-INSERT INTO escuelas_habilitadas (nombre) 
-VALUES ('Escuela Latinoamericana de Coaching Ontologico');
-```
+## 🔧 Scripts Disponibles
 
-### 2. Políticas RLS
+- `npm run dev` - Servidor de desarrollo
+- `npm run build` - Build de producción
+- `npm run preview` - Previsualizar build
 
-#### Para `profiles`
-```sql
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+## 🚀 Despliegue
 
--- SELECT público
-CREATE POLICY "Profiles are viewable by everyone" ON profiles
-  FOR SELECT USING (true);
+### Cloudflare Pages
+1. Conectar repositorio a Cloudflare Pages
+2. Configurar variables de entorno
+3. Build command: `npm run build`
+4. Output directory: `dist`
 
--- INSERT solo propio perfil
-CREATE POLICY "Users can insert their own profile" ON profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
+### Variables de Entorno Requeridas
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_ABLY_API_KEY`
 
--- UPDATE solo propio perfil
-CREATE POLICY "Users can update their own profile" ON profiles
-  FOR UPDATE USING (auth.uid() = id);
-```
+## 🤝 Contribución
 
-#### Para `fotos`
-```sql
-ALTER TABLE fotos ENABLE ROW LEVEL SECURITY;
+1. Fork el proyecto
+2. Crear rama feature (`git checkout -b feature/AmazingFeature`)
+3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir Pull Request
 
--- SELECT público (MVP)
-CREATE POLICY "Photos are viewable by everyone" ON fotos
-  FOR SELECT USING (true);
+## 📄 Licencia
 
--- INSERT/UPDATE/DELETE solo dueño
-CREATE POLICY "Users can manage their own photos" ON fotos
-  FOR ALL USING (auth.uid() = user_id);
-```
+Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 
-#### Para `escuelas_habilitadas`
-```sql
-ALTER TABLE escuelas_habilitadas ENABLE ROW LEVEL SECURITY;
+## 🆘 Soporte
 
--- SELECT público
-CREATE POLICY "Schools are viewable by everyone" ON escuelas_habilitadas
-  FOR SELECT USING (true);
-```
+Para soporte técnico o preguntas, contactar al equipo de desarrollo.
 
-### 3. Storage Bucket
+---
 
-#### Crear bucket `avatars`
-```sql
--- En Supabase Dashboard > Storage
--- Crear bucket llamado "avatars" (privado)
-```
-
-#### Políticas de Storage
-```sql
--- Política para INSERT/UPDATE/DELETE (solo dueño)
-CREATE POLICY "Users can upload to their own folder" ON storage.objects
-  FOR ALL USING (
-    bucket_id = 'avatars' AND 
-    split_part(name, '/', 1) = auth.uid()::text
-  );
-
--- Política para SELECT (solo dueño - usamos Signed URLs)
-CREATE POLICY "Users can view their own photos" ON storage.objects
-  FOR SELECT USING (
-    bucket_id = 'avatars' AND 
-    split_part(name, '/', 1) = auth.uid()::text
-  );
-```
-
-### 4. Configuración de Auth
-
-#### En Supabase Dashboard > Authentication > Settings:
-- **Site URL**: `http://localhost:3000` (desarrollo)
-- **Redirect URLs**: `http://localhost:3000/**`
-- **Enable email confirmations**: Opcional (recomendado para producción)
-
-## Scripts Disponibles
-
-- `npm run dev` - Ejecuta el servidor de desarrollo
-- `npm run build` - Construye la aplicación para producción
-- `npm run preview` - Previsualiza la build de producción
-
-## Despliegue en Cloudflare Pages
-
-1. Conecta tu repositorio a Cloudflare Pages
-2. Configura las variables de entorno en Cloudflare Pages:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-3. Configura el comando de build: `npm run build`
-4. Configura el directorio de salida: `dist`
-
-## Tecnologías Utilizadas
-
-- **React 18** - Biblioteca de UI
-- **TypeScript** - Tipado estático
-- **Redux Toolkit** - Manejo de estado
-- **Material-UI** - Componentes de UI
-- **React Router** - Enrutamiento
-- **Supabase** - Backend como servicio
-- **Vite** - Herramienta de build 
+**OntoMatch v2** - Conectando coaches ontológicos desde 2024 🎯 
