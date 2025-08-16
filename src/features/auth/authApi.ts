@@ -325,9 +325,38 @@ export const completeProfile = createAsyncThunk(
     }
 
     // Normalización y validación de datos
-    const meDefino = (profileData.me_defino?.[0] || 'otros').toLowerCase() as 'masculino' | 'femenino' | 'otros';
-    const queBusco = (profileData.que_busco || []).map(x => x.toLowerCase()) as ('masculino' | 'femenino' | 'otros')[];
+    console.log('=== DEBUG: Datos recibidos ===');
+    console.log('profileData.me_defino:', profileData.me_defino);
+    console.log('profileData.que_busco:', profileData.que_busco);
+    console.log('profileData.busca:', profileData.busca);
+    
+    // Mapeo para convertir a los valores esperados por el enum de la base de datos
+    const mapGeneroToEnum = (genero: string): string => {
+      switch (genero.toLowerCase()) {
+        case 'masculino': return 'masculino';
+        case 'femenino': return 'femenino';
+        case 'otros': return 'otro';
+        default: return 'otro';
+      }
+    };
+    
+    const mapGeneroFromEnum = (genero: string): string => {
+      switch (genero.toLowerCase()) {
+        case 'masculino': return 'masculino';
+        case 'femenino': return 'femenino';
+        case 'otro': return 'otros';
+        default: return 'otros';
+      }
+    };
+    
+    const meDefino = mapGeneroToEnum(profileData.me_defino?.[0] || 'otros');
+    const queBusco = (profileData.que_busco || []).map(x => mapGeneroToEnum(x));
     const busca = (profileData.busca || []).map(x => x.toLowerCase()) as ('pareja' | 'amistad' | 'negocios')[];
+    
+    console.log('=== DEBUG: Datos normalizados ===');
+    console.log('meDefino:', meDefino);
+    console.log('queBusco:', queBusco);
+    console.log('busca:', busca);
 
     // Validaciones mínimas
     if (!profileData.nombre_completo?.trim()) {
@@ -383,65 +412,80 @@ export const completeProfile = createAsyncThunk(
       throw new Error(`Error al crear el perfil: ${profileError.message}`);
     }
 
-    // 2. Subir fotos si existen
-    if (profileData.photos && profileData.photos.length > 0) {
-      // Verificar que la sesión esté activa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sesión no válida. Por favor, inicia sesión nuevamente.');
-      }
+         // 2. Subir fotos si existen
+     if (profileData.photos && profileData.photos.length > 0) {
+       // Verificar que la sesión esté activa
+       const { data: { session } } = await supabase.auth.getSession();
+       if (!session) {
+         throw new Error('Sesión no válida. Por favor, inicia sesión nuevamente.');
+       }
 
-      for (let i = 0; i < profileData.photos.length; i++) {
-        const photo = profileData.photos[i];
-        const position = i + 1;
-        
-        // Usar la extensión original del archivo
-        const fileExtension = photo.name.split('.').pop() || 'jpg';
-        const path = `${user.id}/${position}.${fileExtension}`;
+       // Obtener la posición más alta actual para continuar desde ahí
+       const { data: existingPhotos } = await supabase
+         .from('fotos')
+         .select('position')
+         .eq('user_id', user.id)
+         .order('position', { ascending: false })
+         .limit(1);
 
-        console.log('Subiendo foto:', {
-          fileName: photo.name,
-          fileSize: photo.size,
-          fileType: photo.type,
-          path: path
-        });
+       let nextPosition = 1;
+       if (existingPhotos && existingPhotos.length > 0) {
+         nextPosition = existingPhotos[0].position + 1;
+       }
 
-        // Subir archivo a Storage
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(path, photo, {
-            upsert: true,
-            contentType: photo.type || 'image/jpeg',
-            cacheControl: '3600',
-          });
+       for (let i = 0; i < profileData.photos.length; i++) {
+         const photo = profileData.photos[i];
+         const position = nextPosition + i;
+         
+         // Usar la extensión original del archivo
+         const fileExtension = photo.name.split('.').pop() || 'jpg';
+         const path = `${user.id}/${position}.${fileExtension}`;
 
-        if (uploadError) {
-          console.error('Error de upload:', uploadError);
-          if (uploadError.message?.includes('bucket')) {
-            throw new Error('Error de configuración del servidor');
-          } else if (uploadError.message?.includes('size')) {
-            throw new Error('La imagen es demasiado grande');
-          } else if (uploadError.message?.includes('policy')) {
-            throw new Error('Error de permisos. Contacta al administrador.');
-          } else {
-            throw new Error(`Error al subir la foto ${position}: ${uploadError.message}`);
-          }
-        }
+         console.log('Subiendo foto:', {
+           fileName: photo.name,
+           fileSize: photo.size,
+           fileType: photo.type,
+           path: path,
+           position: position
+         });
 
-        // Crear registro en la tabla fotos
-        const { error: photoRecordError } = await supabase
-          .from('fotos')
-          .upsert({
-            user_id: user.id,
-            path: path,
-            position: position,
-          });
+         // Subir archivo a Storage
+         const { error: uploadError } = await supabase.storage
+           .from('avatars')
+           .upload(path, photo, {
+             upsert: true,
+             contentType: photo.type || 'image/jpeg',
+             cacheControl: '3600',
+           });
 
-        if (photoRecordError) {
-          throw new Error(`Error al registrar la foto ${position}: ${photoRecordError.message}`);
-        }
-      }
-    }
+         if (uploadError) {
+           console.error('Error de upload:', uploadError);
+           if (uploadError.message?.includes('bucket')) {
+             throw new Error('Error de configuración del servidor');
+           } else if (uploadError.message?.includes('size')) {
+             throw new Error('La imagen es demasiado grande');
+           } else if (uploadError.message?.includes('policy')) {
+             throw new Error('Error de permisos. Contacta al administrador.');
+           } else {
+             throw new Error(`Error al subir la foto ${position}: ${uploadError.message}`);
+           }
+         }
+
+         // Crear registro en la tabla fotos
+         const { error: photoRecordError } = await supabase
+           .from('fotos')
+           .insert({
+             user_id: user.id,
+             path: path,
+             position: position,
+           });
+
+         if (photoRecordError) {
+           console.error('Error al registrar foto:', photoRecordError);
+           throw new Error(`Error al registrar la foto ${position}: ${photoRecordError.message}`);
+         }
+       }
+     }
   }
 );
 
